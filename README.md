@@ -1,4 +1,4 @@
-# Threat Hunt Report: Suspicious Creation of Hidden Folder and File
+# Threat Hunt Report: Unauthorized Use of Built-in Remote Assistance Tools
 - [Scenario Creation](https://github.com/huyrocks123/threat-hunting-scenario-unauthorized-use-of-built-in-remote-assistance-tools/blob/main/threat-hunting-scenario-unauthorized-use-of-built-in-remote-assistance-tools-event-creation.md)
 
 ## Platforms and Languages Leveraged

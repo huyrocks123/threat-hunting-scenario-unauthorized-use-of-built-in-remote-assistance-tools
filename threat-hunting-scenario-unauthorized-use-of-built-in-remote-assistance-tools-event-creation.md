@@ -10,8 +10,7 @@ msra.exe /offerra John-PC
 msra.exe /offerra WIN-TEST01
 msra.exe /offerra Desktop-Dev01
 ```
-3. Created a folder named remote-control-notes.txt on the desktop, jotting down targets and session times.
-4. Deleted the file shortly afterward to conceal activity.
+3. Created a text file named remote-control-notes.txt on the desktop, jotting down targets and session times.
 
 ---
 
@@ -27,9 +26,7 @@ msra.exe /offerra Desktop-Dev01
 |---------------------|------------------------------------------------------------------------------|
 | **Name**| DeviceFileEvents |
 | **Info**|	https://learn.microsoft.com/en-us/defender-xdr/advanced-hunting-devicefileevents-table |
-| **Purpose**|	Detect creation and deletion of the file remote-control-notes.txt. |
-
-
+| **Purpose**|	Detect creation of the file remote-control-notes.txt. |
 
 ---
 

@@ -67,57 +67,87 @@ DeviceProcessEvents
 
 ---
 
+### 3. Tracked Creation and Modification of remote-control-notes.txt
+
+To detect activity related to potential operational planning or session tracking, I queried for file system events involving a file named remote-control-notes.txt. 
+
+At 2025-05-20T00:17:02.8202038Z, a file on the desktop was renamed to remote-control-notes.txt.txt by explorer.exe. Seconds later, at 2025-05-20T00:17:03.0220822Z, a shortcut file remote-control-notes.txt.lnk was created in the Recent folder, confirming that the document had been accessed or opened. At 2025-05-20T00:17:14.0202785Z, the file was modified using notepad.exe, likely as the attacker updated their operational notes. 
+
+**Query used to locate event:**
+```kql
+DeviceFileEvents
+| where FileName contains "remote-control-notes.txt"
+| project Timestamp, DeviceName, FileName, FolderPath, ActionType, InitiatingProcessFileName
+```
+
+<img width="1420" alt="Screenshot 2025-05-19 at 9 26 09 PM" src="https://github.com/user-attachments/assets/d04d2226-0037-4fe8-a2e9-9ae5cd8eb451" />
+
 ## Chronological Event Timeline 
 
-### 1. Hidden folder named secret_stuff was created and set to hidden attribute by user huy.
+### 1. msra.exe launched manually via GUI
 
-- **Timestamp:** 2025-05-19T21:20:08.0000000Z
-- **Event:** The folder C:\Users\huy\Documents\secret_stuff was hidden using the Windows attrib +h command.
-- **Action:** The folder was intentionally concealed from casual view to evade detection.
-- **Command:** attrib.exe +h C:\Users\huy\Documents\secret_stuff
+- **Timestamp:** 2025-05-20T00:13:43.0482142Z
+- **Event:** The Remote Assistance tool (msra.exe) was launched by the user "huy" on device "huy" through the graphical interface (explorer.exe).
+- **Action:** Indicates manual execution, likely via Start Menu or Run dialog, to probe or prepare for further activity.
+- **Command Source:** explorer.exe → msra.exe
 
-### 2. A PowerShell script named runme.ps1 was created inside the hidden folder.
+### 2. Unsolicited Remote Assistance initiated to target: PC1234
 
-- **Timestamp:** 2025-05-19T21:20:23.1352634Z
-- **Event:** The file runme.ps1 was created inside the hidden secret_stuff folder by powershell_ise.exe.
-- **Action:** Suspicious script file placed in a hidden directory, which may indicate preparation for malicious activity.
-- **File Path:** C:\Users\huy\Documents\secret_stuff\runme.ps1
+- **Timestamp:** 2025-05-20T00:15:19.0569006Z
+- **Event:** User "huy" attempted to initiate an unsolicited Remote Assistance session to host "PC1234" using the /offerra flag.
+- **Action:** First sign of suspicious lateral movement using msra.exe to connect to another internal machine.
+- **Command:** msra.exe /offerra PC1234
 
-### 3. The PowerShell script runme.ps1 was executed with bypassed execution policy.
+### 3. Unsolicited Remote Assistance initiated to target: John-PC
 
-- **Timestamp:** 2025-05-19T21:20:32.0000000Z
-- **Event:** The script runme.ps1 located in the hidden folder was executed using powershell.exe with the -ExecutionPolicy Bypass flag.
-- **Action:** Suspicious script execution from a hidden folder, indicative of potential malicious or unauthorized activity.
-- **Command:** powershell.exe -ExecutionPolicy Bypass -File C:\Users\huy\Documents\secret_stuff\runme.ps1
+- **Timestamp:** 2025-05-20T00:15:51.8459403Z
+- **Event:** A second remote session attempt was made by user "huy" to the host "John-PC".
+- **Action:** Repeated unauthorized access attempts suggesting probing or lateral movement.
+- **Command:** msra.exe /offerra John-PC
+
+### 4. Unsolicited Remote Assistance initiated to target: WIN-TEST01
+
+- **Timestamp:** 2025-05-20T00:16:08.1419023Z
+- **Event:** A third Remote Assistance session was launched targeting "WIN-TEST01".
+- **Action:** Indicates ongoing effort to compromise multiple internal systems.
+- **Command:** msra.exe /offerra WIN-TEST01
+
+### 5. Unsolicited Remote Assistance initiated to target: Desktop-Dev01
+
+- **Timestamp:** 2025-05-20T00:16:25.5630260Z
+- **Event:** Final known Remote Assistance attempt was made to "Desktop-Dev01".
+- **Action:** Reinforces pattern of unsolicited remote session initiation, likely without user consent.
+- **Command:** msra.exe /offerra Desktop-Dev01
+
+### 6. Operational notes saved in remote-control-notes.txt
+
+- **Timestamp:** 2025-05-20T00:17:14.0202785Z
+- **Event:** A file named remote-control-notes.txt was created on the user's Desktop to document session details.
+- **Action:** Indicates attacker was tracking operations or targets, which could be useful for operational planning or persistence.
+- **File Path:** C:\Users\huy\Desktop\remote-control-notes.txt
+
 ---
 
 ## Summary
 
-This threat hunt identified suspicious activity involving the creation and concealment of a hidden folder named secret_stuff within a user’s Documents directory, followed by the placement and execution of a PowerShell script inside that folder. The use of the attrib +h command to hide the folder combined with the execution of a script using powershell.exe with an execution policy bypass strongly suggests an attempt to evade standard detection and potentially execute malicious code. These behaviors align with known adversary techniques to hide payloads and run unauthorized scripts in Windows environments.
+This threat hunt uncovered suspicious use of Microsoft's built-in Remote Assistance tool (msra.exe) in a manner consistent with unauthorized remote session initiation and lateral movement within a network. The attacker, operating from a single device under the user account "huy," executed multiple instances of msra.exe /offerra targeting internal hosts (e.g., PC1234, John-PC, WIN-TEST01, Desktop-Dev01) — a technique used to initiate unsolicited Remote Assistance sessions.
 
-The investigation leveraged Microsoft Defender for Endpoint telemetry and Kusto Query Language (KQL) queries to detect these indicators of compromise (IoCs). The findings emphasize the importance of monitoring hidden file system objects and unusual script executions originating from concealed locations as part of an effective security posture.
+To maintain operational awareness, the attacker temporarily created and modified a file named remote-control-notes.txt on the desktop, suggesting the tracking of session targets or outcomes. The file was later accessed via the GUI and altered using Notepad, indicating interactive behavior consistent with hands-on-keyboard activity. Evidence of file renaming and shortcut creation further confirmed active interaction with the file. The hunt clearly points to deliberate use of legitimate tools for potentially malicious internal reconnaissance and access.
 
 ---
 
 ## Response Taken
 
-1. Immediate Containment:
-The affected user account and endpoint device were isolated from the network to prevent potential lateral movement or further execution of suspicious scripts.
+The findings were escalated to the Security Operations Center (SOC) for containment and further investigation.
 
-2. Further Investigation:
-Additional analysis was conducted to identify any other hidden directories or scripts created in similar paths across the environment, expanding the search to detect possible related malicious activity.
+The user account "huy" and the associated endpoint "huy" were flagged for immediate review and access restriction.
 
-3. Malware and Script Analysis:
-The suspicious PowerShell script runme.ps1 was extracted and analyzed in a sandbox environment to determine its intent, payload, and any associated indicators of compromise.
+Microsoft Defender for Endpoint was used to isolate the affected machine from the network to prevent potential spread.
 
-4. Remediation:
-The hidden folder and associated files were deleted after confirming malicious intent. The system was scanned with endpoint protection tools to remove any residual threats.
+A search was initiated across the environment to identify any additional use of msra.exe /offerra or creation of remote-control-notes.txt on other endpoints.
 
-5. Policy and Detection Enhancements:
-Security monitoring rules were updated to alert on the creation of hidden folders, usage of the attrib command to set hidden attributes, and execution of scripts from hidden directories. Endpoint Detection and Response (EDR) configurations were fine-tuned to detect and block script execution with bypassed policies.
+A detection rule was proposed for alerting on command-line execution of msra.exe with the /offerra flag and rapid creation/deletion of suspiciously named text files on user desktops.
 
-6. User Awareness:
-The affected user was informed about the incident and educated on security best practices regarding suspicious file handling and script execution to prevent recurrence.
-
+End-user awareness training was recommended to cover risks associated with built-in remote access tools.
 
 ---
